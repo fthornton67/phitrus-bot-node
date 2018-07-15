@@ -3,25 +3,20 @@ require('dotenv-extended').load();
 
 var builder = require('botbuilder');
 var restify = require('restify');
+var Store = require('./store');
+var spellService = require('./spell-service');
 
 // Setup Restify Server
 var server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, function () {
     console.log('%s listening to %s', server.name, server.url);
 });
-
-// Create chat bot and listen to messages
+// Create connector and listen for messages
 var connector = new builder.ChatConnector({
     appId: process.env.MICROSOFT_APP_ID,
     appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
 server.post('/api/messages', connector.listen());
-
-var DialogLabels = {
-    Hotels: 'Hotels',
-    Flights: 'Flights',
-    Support: 'Support'
-};
 
 // Bot Storage: Here we register the state storage for your bot. 
 // Default store: volatile in-memory store - Only for prototyping!
@@ -29,50 +24,130 @@ var DialogLabels = {
 // For samples and documentation, see: https://github.com/Microsoft/BotBuilder-Azure
 var inMemoryStorage = new builder.MemoryBotStorage();
 
-var bot = new builder.UniversalBot(connector, [
-    function (session) {
-        // prompt for search option
-        builder.Prompts.choice(
-            session,
-            'Are you looking for a flight or a hotel?',
-            [DialogLabels.Flights, DialogLabels.Hotels],
-            {
-                maxRetries: 3,
-                retryPrompt: 'Not a valid option'
-            });
+var bot = new builder.UniversalBot(connector, function (session) {
+    session.send('Sorry, I did not understand \'%s\'. Type \'help\' if you need assistance.', session.message.text);
+}).set('storage', inMemoryStorage); // Register in memory storage
+
+// You can provide your own model by specifing the 'LUIS_MODEL_URL' environment variable
+// This Url can be obtained by uploading or creating your model from the LUIS portal: https://www.luis.ai/
+var recognizer = new builder.LuisRecognizer(process.env.LUIS_MODEL_URL);
+bot.recognizer(recognizer);
+
+bot.dialog('SearchHotels', [
+    function (session, args, next) {
+        session.send('Welcome to the Hotels finder! We are analyzing your message: \'%s\'', session.message.text);
+
+        // try extracting entities
+        var cityEntity = builder.EntityRecognizer.findEntity(args.intent.entities, 'builtin.geography.city');
+        var airportEntity = builder.EntityRecognizer.findEntity(args.intent.entities, 'AirportCode');
+        if (cityEntity) {
+            // city entity detected, continue to next step
+            session.dialogData.searchType = 'city';
+            next({ response: cityEntity.entity });
+        } else if (airportEntity) {
+            // airport entity detected, continue to next step
+            session.dialogData.searchType = 'airport';
+            next({ response: airportEntity.entity });
+        } else {
+            // no entities detected, ask user for a destination
+            builder.Prompts.text(session, 'Please enter your destination');
+        }
     },
-    function (session, result) {
-        if (!result.response) {
-            // exhausted attemps and no selection, start over
-            session.send('Ooops! Too many attemps :( But don\'t worry, I\'m handling that exception and you can try again!');
-            return session.endDialog();
+    function (session, results) {
+        var destination = results.response;
+
+        var message = 'Looking for hotels';
+        if (session.dialogData.searchType === 'airport') {
+            message += ' near %s airport...';
+        } else {
+            message += ' in %s...';
         }
 
-        // on error, start over
-        session.on('error', function (err) {
-            session.send('Failed with message: %s', err.message);
-            session.endDialog();
-        });
+        session.send(message, destination);
 
-        // continue on proper dialog
-        var selection = result.response.entity;
-        switch (selection) {
-            case DialogLabels.Flights:
-                return session.beginDialog('flights');
-            case DialogLabels.Hotels:
-                return session.beginDialog('hotels');
-        }
+        // Async search
+        Store
+            .searchHotels(destination)
+            .then(function (hotels) {
+                // args
+                session.send('I found %d hotels:', hotels.length);
+
+                var message = new builder.Message()
+                    .attachmentLayout(builder.AttachmentLayout.carousel)
+                    .attachments(hotels.map(hotelAsAttachment));
+
+                session.send(message);
+
+                // End
+                session.endDialog();
+            });
     }
-]).set('storage', inMemoryStorage); // Register in memory storage
-
-bot.dialog('flights', require('./flights'));
-bot.dialog('hotels', require('./hotels'));
-bot.dialog('support', require('./support'))
-    .triggerAction({
-        matches: [/help/i, /support/i, /problem/i]
-    });
-
-// log any bot errors into the console
-bot.on('error', function (e) {
-    console.log('And error ocurred', e);
+]).triggerAction({
+    matches: 'SearchHotels',
+    onInterrupted: function (session) {
+        session.send('Please provide a destination');
+    }
 });
+
+bot.dialog('ShowHotelsReviews', function (session, args) {
+    // retrieve hotel name from matched entities
+    var hotelEntity = builder.EntityRecognizer.findEntity(args.intent.entities, 'Hotel');
+    if (hotelEntity) {
+        session.send('Looking for reviews of \'%s\'...', hotelEntity.entity);
+        Store.searchHotelReviews(hotelEntity.entity)
+            .then(function (reviews) {
+                var message = new builder.Message()
+                    .attachmentLayout(builder.AttachmentLayout.carousel)
+                    .attachments(reviews.map(reviewAsAttachment));
+                session.endDialog(message);
+            });
+    }
+}).triggerAction({
+    matches: 'ShowHotelsReviews'
+});
+
+bot.dialog('Help', function (session) {
+    session.endDialog('Hi! Try asking me things like \'search hotels in Seattle\', \'search hotels near LAX airport\' or \'show me the reviews of The Bot Resort\'');
+}).triggerAction({
+    matches: 'Help'
+});
+
+// Spell Check
+if (process.env.IS_SPELL_CORRECTION_ENABLED === 'true') {
+    bot.use({
+        botbuilder: function (session, next) {
+            spellService
+                .getCorrectedText(session.message.text)
+                .then(function (text) {
+                    console.log('Text corrected to "' + text + '"');
+                    session.message.text = text;
+                    next();
+                })
+                .catch(function (error) {
+                    console.error(error);
+                    next();
+                });
+        }
+    });
+}
+
+// Helpers
+function hotelAsAttachment(hotel) {
+    return new builder.HeroCard()
+        .title(hotel.name)
+        .subtitle('%d stars. %d reviews. From $%d per night.', hotel.rating, hotel.numberOfReviews, hotel.priceStarting)
+        .images([new builder.CardImage().url(hotel.image)])
+        .buttons([
+            new builder.CardAction()
+                .title('More details')
+                .type('openUrl')
+                .value('https://www.bing.com/search?q=hotels+in+' + encodeURIComponent(hotel.location))
+        ]);
+}
+
+function reviewAsAttachment(review) {
+    return new builder.ThumbnailCard()
+        .title(review.title)
+        .text(review.text)
+        .images([new builder.CardImage().url(review.image)]);
+}

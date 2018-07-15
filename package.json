@@ -1,7 +1,7 @@
 {
-  "name": "botbuilder-sample-multidialogs",
+  "name": "botbuilder-sample-luis",
   "version": "1.0.0",
-  "description": "Bot Builder Sample - MultiDialogs",
+  "description": "Bot Builder Sample - LUIS",
   "scripts": {
     "start": "node app.js"
   },
@@ -24,6 +24,7 @@
     "bluebird": "^3.4.7",
     "botbuilder": "^3.13.1",
     "dotenv-extended": "^1.0.4",
+    "request": "^2.79.0",
     "restify": "^4.3.0"
   }
 }
