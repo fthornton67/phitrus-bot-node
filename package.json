@@ -1,22 +1,27 @@
 {
-  "name": "echobot-es6",
+  "name": "echobot-es6-botframework-webchat",
   "version": "1.0.0",
-  "description": "Bot Builder v4 example showing a simple bot that echos anything you say.",
+  "description": "Example echo bot using the botframework-webchat",
   "main": "app.js",
   "scripts": {
-    "test": "mocha tests/*.test.js",
-    "start": "node app.js"
+    "start": "webpack-dev-server",
+    "build-sample": "webpack"
   },
   "author": "Microsoft",
   "license": "MIT",
   "dependencies": {
     "botbuilder": "^4.0.0-m4.2",
-    "botbuilder-core": "^4.0.0-m4.2",
-    "botbuilder-core-extensions": "^4.0.0-m4.2",
-    "restify": "^6.3.4"
+    "botbuilder-azure": "^4.0.0-m4.2",
+    "botframework-webchat": "^0.11.4"
   },
   "devDependencies": {
-    "mocha": "^5.0.0",
-    "nyc": "^11.4.1"
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "clean-webpack-plugin": "^0.1.18",
+    "copy-webpack-plugin": "^4.3.1",
+    "css-loader": "^0.28.9",
+    "style-loader": "^0.20.1",
+    "webpack": "^3.10.0",
+    "webpack-dev-server": "^2.11.1"
   }
 }

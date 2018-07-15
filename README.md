@@ -1,4 +1,4 @@
-This sample shows how to create a simple Echo bot with state using [`restify`](https://www.npmjs.com/package/restify). 
+The example shows the use of the botbuilder-js SDK for the browser using the [BotFramework-WebChat](https://github.com/Microsoft/BotFramework-WebChat) and a custom [WebChatAdapter](/src/webChatAdapter.js).
 
 ## To try this sample
 - Clone the repository
@@ -6,33 +6,17 @@ This sample shows how to create a simple Echo bot with state using [`restify`](h
 git clone https://github.com/Microsoft/botbuilder-js.git
 ```
 
-
-### Visual studio code
-- open the `samples\echobot-es6` folder
-- Bring up a terminal, navigate to `samples\echobot-es6` folder
+### Visual Stydio Code:
+- open `samples\echobot-es6-botframework-webchat` folder 
+- bring up a terminal, navigate to `samples\echobot-es6-botframework-webchat` folder
 - type `npm install` to install the sample's dependencies
 - type `npm start` to run the bot
+- navigate to `http://localhost:8080`
 
-## Testing the bot using Bot Framework Emulator
-[Microsoft Bot Framework Emulator](https://github.com/microsoft/botframework-emulator) is a desktop application that allows bot developers to test and debug their bots on localhost or running remotely through a tunnel.
 
-- Install the Bot Framework emulator from [here](https://github.com/Microsoft/BotFramework-Emulator/releases)
+# Adapters
+Developers can use the [BotAdapter](https://github.com/Microsoft/botbuilder-js/blob/master/doc/botbuilder/classes/botbuilder.botadapter.md) abstract base class to implement their own custom adapters. Implementing a custom adapter allows users to connect bots to connect to channels not supported by the [Bot Framework](https://docs.microsoft.com/en-us/azure/bot-service/bot-service-manage-channels?view=azure-bot-service-4.0). In this sample, a custom [WebChatAdapter](./src/WebChatAdapter.js) has been implemented so that the entirety of the bot can live in a user's browser.
 
-### Connect to bot using Bot Framework Emulator **V4**
-- Launch Bot Framework Emulator
-- File -> Open bot and navigate to `samples\echobot-es6` folder
-- Select `echobot-es6.bot` file
-
-### Connect to bot using Bot Framework Emulator **V3**
-- Launch Bot Framework Emulator
-- Paste this URL in the emulator window - http://localhost:3978/api/messages
-
-# Bot state
-A key to good bot design is to track the context of a conversation, so that your bot remembers things like the answers to previous questions. Depending on what your bot is used for, you may even need to keep track of state or store information for longer than the lifetime of the conversation. A bot's state is information it remembers in order to respond appropriately to incoming messages. The Bot Builder SDK provides classes for [storing and retrieving state data](https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-v4-state?view=azure-bot-service-4.0&tabs=js) as an object associated with a user or a conversation.
-
-    - Conversation properties help your bot keep track of the current conversation the bot is having with the user. If your bot needs to complete a sequence of steps or switch between conversation topics, you can use conversation properties to manage steps in a sequence or track the current topic. Since conversation properties reflect the state of the current conversation, you typically clear them at the end of a session, when the bot receives an end of conversation activity.
-
-    - User properties can be used for many purposes, such as determining where the user's prior conversation left off or simply greeting a returning user by name. If you store a user's preferences, you can use that information to customize the conversation the next time you chat. For example, you might alert the user to a news article about a topic that interests her, or alert a user when an appointment becomes available. You should clear them if the bot receives a delete user data activity.
 
 # Further reading
 
