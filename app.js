@@ -1,5 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
+var http = require('http');
+var fs = require('fs');
+
 const Alexa = require('ask-sdk-core');
 const skillBuilder = Alexa.SkillBuilders.custom();
 
@@ -29,7 +32,12 @@ adapter.use(new BotStateSet(convoState, userState));
 const echoBot = createEchoBot(convoState);
 
 server.get('/',(req,res)=>{
-  res.send("bot");
+
+fs.readFile('index.html',function (err, data){
+        res.writeHead(200, {'Content-Type': 'text/html','Content-Length':data.length});
+        res.write(data);
+        res.end();
+    });
 });
 // Listen for incoming requests 
 server.post('/api/messages', (req, res) => {
