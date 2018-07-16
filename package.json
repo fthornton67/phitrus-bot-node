@@ -21,12 +21,13 @@
     "url": "https://github.com/Microsoft/BotBuilder-Samples.git"
   },
   "dependencies": {
+    "ask-sdk": "^2.0.7",
+    "ask-sdk-core": "^2.0.0",
+    "ask-sdk-model": "^1.0.0",
     "bluebird": "^3.4.7",
     "botbuilder": "^3.13.1",
     "dotenv-extended": "^1.0.4",
     "request": "^2.79.0",
-    "restify": "^4.3.0",
-    "ask-sdk-core": "^2.0.0",
-    "ask-sdk-model": "^1.0.0"
+    "restify": "^4.3.0"
   }
 }
