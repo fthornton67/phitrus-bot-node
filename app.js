@@ -1,6 +1,6 @@
 // This loads the environment variables from the .env file
 require('dotenv-extended').load();
-const Alexa = require('ask-sdk');
+//const Alexa = require('ask-sdk');
 
 
 
